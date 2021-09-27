@@ -16,7 +16,7 @@ def gaussian_pyramid(input_image, level):
     Return:
         Gaussian pyramid (list of numpy array)
     """
-    list_of_gaussian_pyramid = [input_image]
+    list_of_gaussian_pyramid = [np.array(input_image, "f")]
     for _ in range(level):
         level_img = utils.down_sampling(list_of_gaussian_pyramid[-1])
         list_of_gaussian_pyramid.append(level_img)
