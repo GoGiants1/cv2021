@@ -58,7 +58,24 @@ def blend_images(image1, image2, mask, level):
         blended image (numpy array)
     """
     # Your code
-    return
+    # mask는 image 2와 , 1 - mask는 image 1과
+    image1_sub_mask = utils.safe_subtract(image1, mask)
+    img1_gp = gaussian_pyramid(image1_sub_mask, level)
+    img2_gp = gaussian_pyramid(image2, level)
+    img1_lp = laplacian_pyramid(img1_gp)
+    img2_lp = laplacian_pyramid(img2_gp)
+    merged_lps = []
+    # blended_img
+    for i in range(level, -1, -1):
+        merged_lps.append(utils.safe_add(img1_lp[i], img2_lp[i]))
+
+    prev_merged_image = merged_lps[0]
+    for i, _ in enumerate(merged_lps):
+        if i + 1 <= level:
+            up_sampled_lp = utils.up_sampling(prev_merged_image)
+            # print(f"upsampled: {up_sampled_lp.shape}")
+            prev_merged_image = utils.safe_add(merged_lps[i + 1], up_sampled_lp)
+    return prev_merged_image
 
 
 if __name__ == "__main__":
