@@ -16,10 +16,13 @@ def gaussian_pyramid(input_image, level):
     Return:
         Gaussian pyramid (list of numpy array)
     """
-
+    list_of_gaussian_pyramid = [input_image]
+    for _ in range(level):
+        level_img = utils.down_sampling(list_of_gaussian_pyramid[-1])
+        list_of_gaussian_pyramid.append(level_img)
     # Your code
     # Note that elements in the list must be arranged in descending order in image resolution (from big image to small image).
-    return
+    return list_of_gaussian_pyramid
 
 
 def laplacian_pyramid(gaussian_pyramid):
@@ -33,7 +36,15 @@ def laplacian_pyramid(gaussian_pyramid):
 
     # Your code
     # Note that elements in the list must be arranged in descending order in image resolution (from big image to small image).
-    return
+    list_of_laplacian = []
+    gaussian_len = len(gaussian_pyramid)
+    for i, gaussian_img in enumerate(gaussian_pyramid):
+        if i + 1 <= gaussian_len - 1:
+            expanded_img = utils.up_sampling(gaussian_pyramid[i + 1])
+            list_of_laplacian.append(utils.safe_subtract(gaussian_img, expanded_img))
+    list_of_laplacian.append(gaussian_pyramid[-1])
+
+    return list_of_laplacian
 
 
 def blend_images(image1, image2, mask, level):

@@ -251,7 +251,6 @@ def gaussian_filter(input_image, size, sigmax, sigmay):
 
     # Your code
     # padded_img = reflect_padding(input_image, size)
-    print(input_image.shape, size, sigmax, sigmay)
     origin_width, origin_height, origin_channels = input_image.shape
     x_filter_size, y_filter_size = size
     x_kernel = np.array(gaussian_kernel_1d(sigmax, x_filter_size)).reshape(
@@ -262,7 +261,6 @@ def gaussian_filter(input_image, size, sigmax, sigmay):
     )
 
     gaussian_kernel_2D = np.dot(x_kernel, y_kernel)
-    print(gaussian_kernel_2D)
 
     result = convolve(input_image, gaussian_kernel_2D)
     # result = convolve(result, y_kernel)
@@ -271,27 +269,24 @@ def gaussian_filter(input_image, size, sigmax, sigmay):
 
 if __name__ == "__main__":
     # image = np.asarray(
-    #     Image.open(os.path.join(os.getcwd(), "images", "baboon.jpeg")).convert("RGB")
+    #     Image.open(os.path.join( "images", "baboon.jpeg")).convert("RGB")
     # )
     image = np.asarray(
-        Image.open(os.path.join(os.getcwd(), "images", "gaussian_noise.jpeg")).convert(
-            "RGB"
-        )
+        Image.open(os.path.join("images", "gaussian_noise.jpeg")).convert("RGB")
     )
     # image = np.asarray(
     #     Image.open(
-    #         os.path.join(os.getcwd(), "images", "salt_and_pepper_noise.jpeg")
+    #         os.path.join( "images", "salt_and_pepper_noise.jpeg")
     #     ).convert("RGB")
     # )
 
-    logdir = os.path.join(os.getcwd(), "results", "HW1_1")
+    logdir = os.path.join("results", "HW1_1")
     if not os.path.exists(logdir):
         os.makedirs(logdir)
 
     kernel_1 = np.ones((5, 5)) / 25.0
     sigmax, sigmay = 5, 5
     ret = reflect_padding(image.copy(), kernel_1.shape)
-    print(ret.shape)
     if ret is not None:
         plt.figure()
         plt.imshow(ret.astype(np.uint8))
