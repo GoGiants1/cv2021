@@ -151,7 +151,7 @@ def convolve(input_image, Kernel):
     origin_width, origin_height, origin_channels = input_image.shape
     out_matrix = np.zeros((origin_width, origin_height, origin_channels))
 
-    fliped_kernel = np.flip(Kernel)
+    flipped_kernel = np.flip(Kernel)
     for i in range(origin_channels):
         channel = reflected_img[:, :, i]
         # 원래 이미지 기준에서의 픽셀 좌표
@@ -164,14 +164,14 @@ def convolve(input_image, Kernel):
                 for c in range(-y_pad_size, y_pad_size + 1):
                     pix_result.append(
                         channel[reflected_x + r, reflected_y + c]
-                        * fliped_kernel[r + x_pad_size, c + y_pad_size]
+                        * flipped_kernel[r + x_pad_size, c + y_pad_size]
                     )
             tmp_out.append(sum(pix_result))
             origin_y += 1
-            if origin_y >= origin_width:
+            if origin_y >= origin_height:
                 origin_y = 0
                 origin_x += 1
-            if origin_x >= origin_height:
+            if origin_x >= origin_width:
                 out_matrix[:, :, i] = np.array(tmp_out).reshape(
                     origin_width, origin_height
                 )
@@ -268,9 +268,7 @@ def gaussian_filter(input_image, size, sigmax, sigmay):
 
 
 if __name__ == "__main__":
-    image = np.asarray(
-        Image.open(os.path.join( "images", "baboon.jpeg")).convert("RGB")
-    )
+    image = np.asarray(Image.open(os.path.join("images", "baboon.jpeg")).convert("RGB"))
     # image = np.asarray(
     #     Image.open(os.path.join("images", "gaussian_noise.jpeg")).convert("RGB")
     # )
