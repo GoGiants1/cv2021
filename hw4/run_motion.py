@@ -16,17 +16,20 @@ def lucas_kanade_affine(img1, img2, p, Gx, Gy):
     # [Caution] From now on, you can only use numpy and
     # RectBivariateSpline. Never use OpenCV.
     warp_mat = np.array([[1 + p[0], p[2], p[4]], [p[1], 1 + p[3], p[5]]])
+    max_gradient = max(Gx.max(), Gy.max())
 
+    # scaling to 0 ~ 1
+    G = np.hstack((Gx.reshape((-1, 1)), Gy.reshape((-1, 1)))) / max_gradient
     # r,c => y,x size
     img1_r, img1_c = img1.shape
     img2_r, img2_c = img2.shape
 
     # for homogeneous coordinate calculation
-    x_start = np.array([0, 0, 1])
-    x_end = np.array([img1_c, img1_r, 1])
+    x_start = np.array([0, 0, 1]).T
+    x_end = np.array([img1_c, img1_r, 1]).T
 
-    warped_x_start = warp_mat @ x_start.T
-    warped_x_end = warp_mat @ x_end.T
+    warped_x_start = np.matmul(warp_mat, x_start)
+    warped_x_end = np.matmul(warp_mat, x_end)
 
     # W(x;p) coordinates
     warped_x_coordinate = np.linspace(warped_x_start[0], warped_x_end[0], img1_c)
@@ -39,36 +42,34 @@ def lucas_kanade_affine(img1, img2, p, Gx, Gy):
 
     img2_spline = RectBivariateSpline(img2_y_coordinate, img2_x_coordinate, img2)
 
-    # Warp I
+    # Warp
     # I(W(x;p))
     IW = img2_spline.ev(warped_mesh_Y, warped_mesh_X)
 
     # Compute error image
-    # T(x) - IW_x
+    # img1(template) - IW_x
     residual = img1 - IW
 
-    max_gradient = max(Gx.max(), Gy.max())
-
-    # scaling to 0 ~ 1
-    G = np.hstack((Gx.reshape((-1, 1)), Gy.reshape((-1, 1)))) / max_gradient
-
     # matrix multiplication: (gradient)(jacobian)
-    gradient_jacobian = np.zeros((img1_c * img1_r, 6))
-    for y in range(img1_r):
-        for x in range(img1_c):
+    gradient_jacobian = np.zeros((img2_r * img2_c, 6))
+    for y in range(img2_r):
+        for x in range(img2_c):
             jacobian = np.array([[x, 0, y, 0, 1, 0], [0, x, 0, y, 0, 1]])
-            pixel = G[x + img1_c * y] @ jacobian
-            gradient_jacobian[x + img1_c * y] = pixel
+            pixel = np.matmul(G[x + img2_c * y], jacobian)
+            gradient_jacobian[x + img2_c * y] = pixel
 
     # back to original scale
     gradient_jacobian = gradient_jacobian * max_gradient
 
     # compute Hessian
-    Hessian = gradient_jacobian.T @ gradient_jacobian
+    Hessian = np.matmul(gradient_jacobian.T, gradient_jacobian)
 
     # compute delta p
     dp = (
-        np.linalg.inv(Hessian) @ gradient_jacobian.T @ (residual).reshape((-1, 1))
+        np.matmul(
+            np.matmul(np.linalg.inv(Hessian), gradient_jacobian.T),
+            (residual).reshape((-1, 1)),
+        )
     ).flatten()
 
     ### END CODE HERE ###
@@ -84,24 +85,25 @@ def subtract_dominant_motion(img1, img2):
     # RectBivariateSpline. Never use OpenCV.
     img1_r, img1_c = img1.shape
     img2_r, img2_c = img2.shape
-
+    delta_p_norm = np.inf
     # find p
-    delta_p = np.array([1, 0, 0, 0, 1, 0])
-    p = np.array([0, 0, 0, 0, 0, 0], dtype=np.float64)
-    while np.linalg.norm(delta_p) > 0.013:
+    delta_p = np.zeros(6)
+    p = np.zeros(6)
+    norm_threshold = 0.013
+    while delta_p_norm > norm_threshold:
         delta_p = lucas_kanade_affine(img1, img2, p, Gx, Gy)
         p += delta_p
+        delta_p_norm = np.linalg.norm(delta_p)
 
-    # M
     warp_mat = np.array(
         [[1 + p[0], 0 + p[2], 0 + p[4]], [0 + p[1], 1 + p[3], 0 + p[5]]]
     )
 
     # warp img1 -> range of warped coordinate
-    x_start = np.array([0, 0, 1])
-    x_end = np.array([img1_c, img1_r, 1])
-    warped_x_start = warp_mat @ x_start.T
-    warped_x_end = warp_mat @ x_end.T
+    x_start = np.array([0, 0, 1]).T
+    x_end = np.array([img1_c, img1_r, 1]).T
+    warped_x_start = np.matmul(warp_mat, x_start)
+    warped_x_end = np.matmul(warp_mat, x_end)
 
     # W(x;p) coordinates
     warped_x_coordinate = np.linspace(warped_x_start[0], warped_x_end[0], img1_c)
@@ -113,12 +115,11 @@ def subtract_dominant_motion(img1, img2):
     img2_y_coordinate = np.linspace(0, img2_r - 1, img2_r)
     img2_spline = RectBivariateSpline(img2_y_coordinate, img2_x_coordinate, img2)
 
-    # Warp I
     # I(W(x;p))
     IW = img2_spline.ev(warped_mesh_Y, warped_mesh_X)
 
-    # Compute error image
-    # T(x) - IW_x
+    # compute error image
+    # template(img1) - IW
     residual = img1 - IW
     moving_image = np.abs(residual)
     th_hi = 0.25 * 256  # you can modify this
